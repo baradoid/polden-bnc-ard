@@ -124,18 +124,18 @@ int lastTempC = 0;
 int tempC = -990;
 void loop() 
 {
-//  unsigned long curTempContrTime = millis();
-//  if((curTempContrTime - lastTempContrTime) > 1000){    
-//    lastTempContrTime = curTempContrTime;
-//    getTemp();
-//    controlHeat();
-//    controlFan();
-//  }
-//
-//  if((curTempContrTime - lastDistContrTime) > 100 ){    
-//    lastDistContrTime = curTempContrTime;    
-//    getDistance();
-//  }
+  unsigned long curTempContrTime = millis();
+  if((curTempContrTime - lastTempContrTime) > 1000){    
+    lastTempContrTime = curTempContrTime;
+    getTemp();
+    controlHeat();
+    controlFan();
+  }
+
+  if((curTempContrTime - lastDistContrTime) > 100 ){    
+    lastDistContrTime = curTempContrTime;    
+    getDistance();
+  }
 
   getPos();
  
@@ -241,17 +241,36 @@ void getDistance()
 
 void getPos()
 {
+//  int pinClkSet = PIND|(1<<pinClk);
+//  int pinClkClr = PIND&~(1<<pinClk);
+//
+//  noInterrupts();
+//  PORTD = pinClkClr;
+//  PORTD = pinClkClr;
+//  PORTD = pinClkClr;
+//  for(int i=0; i<13; i++){         
+//    PORTD = pinClkSet; 
+//    PORTD = pinClkSet; 
+//    PORTD = pinClkSet; 
+//    valArr[i] = PIND;
+//    PORTD = pinClkClr;    
+//    PORTD = pinClkClr;    
+//    PORTD = pinClkClr;    
+//  }  
+//  PORTD = pinClkSet;
+//  PORTD = pinClkSet;
+//  PORTD = pinClkSet;
+//  interrupts();
+  
+  noInterrupts();
   digitalWrite(pinClk, LOW);
-  digitalWrite(pinClk, HIGH);      
-  //digitalWrite(pinClk, LOW);
   for(int i=0; i<13; i++){         
     digitalWrite(pinClk, HIGH);  //for OK connection
-    //digitalWrite(pinClk, HIGH);  //for OK connection
     valArr[i] = PIND;
-    digitalWrite(pinClk, LOW);    
+    digitalWrite(pinClk, LOW); 
   }  
   digitalWrite(pinClk, HIGH);
-
+  interrupts();
   xPos1 = 0; xPos2 = 0;
   for(int i=0; i<13; i++){        
     xPos1 |= (((valArr[i]&pinData1Mask)>>pinData1)<<(12-i));
