@@ -1,22 +1,7 @@
-/*
-  Blink
-  Turns on an LED on for one second, then off for one second, repeatedly.
 
-  Most Arduinos have an on-board LED you can control. On the Uno and
-  Leonardo, it is attached to digital pin 13. If you're unsure what
-  pin the on-board LED is connected to on your Arduino model, check
-  the documentation at http://www.arduino.cc
-
-  This example code is in the public domain.
-
-  modified 8 May 2014
-  by Scott Fitzgerald
- */
 //#include <SPI.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-
-
 
 //SoftwareSerial mySerial(10, 11); // RX, TX
 
@@ -34,7 +19,6 @@ int pinFan1Int = PB3;
 int pinFan2Ext = PD6;
 
 int pinSharp = A0;
-
 int pinHeat = A2;
 
 int sharpVal = 0;
@@ -61,7 +45,7 @@ void setup() {
 
   pinMode(pinData1, INPUT);      
   pinMode(pinData2, INPUT); 
-    
+
   pinMode(pinRele1, OUTPUT); 
   pinMode(pinRele2, OUTPUT); 
     
@@ -85,16 +69,16 @@ void setup() {
   numberOfDevices = sensors.getDeviceCount(); // Grab a count of devices on the wire
   
   // locate devices on the bus
-  Serial.print("Locating devices...");
+  Serial.print("Locating Dallas devices...");
   
   Serial.print("Found ");
   Serial.print(numberOfDevices, DEC);
   Serial.println(" devices.");
 
   // report parasite power requirements
-  Serial.print("Parasite power is: "); 
-  if (sensors.isParasitePowerMode()) Serial.println("ON");
-  else Serial.println("OFF");
+//  Serial.print("Parasite power is: "); 
+//  if (sensors.isParasitePowerMode()) Serial.println("ON");
+//  else Serial.println("OFF");
 
     // Loop through each device, print out address
   for(int i=0;i<numberOfDevices; i++)
@@ -108,15 +92,15 @@ void setup() {
       printAddress(tempDeviceAddress);
       Serial.println();
       
-      Serial.print("Setting resolution to ");
-      Serial.println(TEMPERATURE_PRECISION, DEC);
+      //Serial.print("Setting resolution to ");
+      //Serial.println(TEMPERATURE_PRECISION, DEC);
       
       // set the resolution to TEMPERATURE_PRECISION bit (Each Dallas/Maxim device is capable of several different resolutions)
       sensors.setResolution(tempDeviceAddress, TEMPERATURE_PRECISION);
       
-       Serial.print("Resolution actually set to: ");
-      Serial.print(sensors.getResolution(tempDeviceAddress), DEC); 
-      Serial.println();
+//       Serial.print("Resolution actually set to: ");
+//      Serial.print(sensors.getResolution(tempDeviceAddress), DEC); 
+//      Serial.println();
     }
     else{
       Serial.print("Found ghost device at ");
@@ -127,64 +111,64 @@ void setup() {
 }
 
 int lastXpos1=0, lastXpos2=0;
+int xPos1 = 0, xPos2 = 0;
+
 int valArr[13];
-char str[20];
+char str[50];
 int andrCpuTemp=0;
 // the loop function runs over and over again forever
 unsigned long lastTempContrTime = 0;
 unsigned long lastDistContrTime = 0;
 
-int xPos1 = 0, xPos2 = 0;
-
 int lastTempC = 0;
 int tempC = -990;
 void loop() 
 {
-//  controlFan1();
-//
 //  unsigned long curTempContrTime = millis();
 //  if((curTempContrTime - lastTempContrTime) > 1000){    
 //    lastTempContrTime = curTempContrTime;
 //    getTemp();
 //    controlHeat();
+//    controlFan();
 //  }
 //
 //  if((curTempContrTime - lastDistContrTime) > 100 ){    
 //    lastDistContrTime = curTempContrTime;    
 //    getDistance();
 //  }
-    
+
   getPos();
  
-  if((xPos1 != lastXpos1) || (xPos2 != lastXpos2) ||
-      (lastTempC != tempC) || 
-      (lastSharpVal != sharpVal) ){
-    sprintf(str,"%04X %04X %04d %d", xPos1, xPos2, tempC, sharpVal);
+  if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
+     (lastTempC != tempC) || (lastSharpVal != sharpVal) 
+  ){
+    sprintf(str,"%04X %04X %04d %04d", xPos1, xPos2, tempC, sharpVal);
     Serial.println(str);    
     lastXpos1 = xPos1;
     lastXpos2 = xPos2;
     lastTempC = tempC;
     lastSharpVal = sharpVal;    
   } 
+  //delay(1);
 }
 
 
 // function to print the temperature for a device
-void printTemperature(DeviceAddress deviceAddress)
-{
-  // method 1 - slower
-  //Serial.print("Temp C: ");
-  //Serial.print(sensors.getTempC(deviceAddress));
-  //Serial.print(" Temp F: ");
-  //Serial.print(sensors.getTempF(deviceAddress)); // Makes a second call to getTempC and then converts to Fahrenheit
-
-  // method 2 - faster
-  tempC = sensors.getTempC(deviceAddress);
-  //Serial.print("Temp C: ");
-  //Serial.println(tempC);
-  //Serial.print(" Temp F: ");
-  //Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
-}
+//void printTemperature(DeviceAddress deviceAddress)
+//{
+//  // method 1 - slower
+//  //Serial.print("Temp C: ");
+//  //Serial.print(sensors.getTempC(deviceAddress));
+//  //Serial.print(" Temp F: ");
+//  //Serial.print(sensors.getTempF(deviceAddress)); // Makes a second call to getTempC and then converts to Fahrenheit
+//
+//  // method 2 - faster
+//  tempC = sensors.getTempC(deviceAddress);
+//  //Serial.print("Temp C: ");
+//  //Serial.println(tempC);
+//  //Serial.print(" Temp F: ");
+//  //Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
+//}
 
 // function to print a device address
 void printAddress(DeviceAddress deviceAddress)
@@ -268,13 +252,14 @@ void getPos()
   }  
   digitalWrite(pinClk, HIGH);
 
+  xPos1 = 0; xPos2 = 0;
   for(int i=0; i<13; i++){        
     xPos1 |= (((valArr[i]&pinData1Mask)>>pinData1)<<(12-i));
     xPos2 |= (((valArr[i]&pinData2Mask)>>pinData2)<<(12-i));    
   } 
 }
 
-void controlFan1()
+void controlFan()
 {
   String inStr = Serial.readString();
   if(inStr.length() > 0){
