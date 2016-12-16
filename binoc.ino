@@ -38,7 +38,7 @@ DeviceAddress tempDeviceAddress; // We'll use this variable to store a found dev
 void setup() {
   // initialize digital pin 13 as an output.
   //pinMode(13, OUTPUT);
-  Serial.begin(115200);
+  Serial.begin(230400);
    
   pinMode(pinClk, OUTPUT);           // set pin to input
   digitalWrite(pinClk, LOW);   
@@ -56,7 +56,7 @@ void setup() {
     
   digitalWrite(pinRele1, HIGH); 
   digitalWrite(pinRele2, HIGH);  
-  delay(5000); 
+  delay(2500); 
   digitalWrite(pinRele1, LOW);  
 
   pinMode(pinHeat, OUTPUT); 
@@ -122,34 +122,40 @@ unsigned long lastDistContrTime = 0;
 
 int lastTempC = 0;
 int tempC = -990;
+
+unsigned long lastSendReportTime = 0;
+unsigned long maninCntr = 0;
 void loop() 
 {
-  unsigned long curTempContrTime = millis();
-  if((curTempContrTime - lastTempContrTime) > 1000){    
-    lastTempContrTime = curTempContrTime;
+  maninCntr++;
+  unsigned long curTime = millis();
+  if((curTime - lastTempContrTime) > 1000){    
+    lastTempContrTime = curTime;
     getTemp();
     controlHeat();
     controlFan();
   }
 
-  if((curTempContrTime - lastDistContrTime) > 100 ){    
-    lastDistContrTime = curTempContrTime;    
+  if((curTime - lastDistContrTime) > 100 ){    
+    lastDistContrTime = curTime;    
     getDistance();
   }
 
   getPos();
- 
-  if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
-     (lastTempC != tempC) || (lastSharpVal != sharpVal) 
-  ){
+
+  if((curTime - lastSendReportTime) > 10){
+    lastSendReportTime = curTime;
+//  if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
+//     (lastTempC != tempC) || (lastSharpVal != sharpVal) 
+//  ){
     sprintf(str,"%04X %04X %04d %04d", xPos1, xPos2, tempC, sharpVal);
-    Serial.println(str);    
-    lastXpos1 = xPos1;
-    lastXpos2 = xPos2;
-    lastTempC = tempC;
-    lastSharpVal = sharpVal;    
-  } 
-  //delay(1);
+    Serial.println(str);  
+//    lastXpos1 = xPos1;
+//    lastXpos2 = xPos2;
+//    lastTempC = tempC;
+//    lastSharpVal = sharpVal;    
+//  } 
+  }
 }
 
 
@@ -220,7 +226,11 @@ void getTemp()
 int calcPoly(int mV, int mV1, int mV2, int cm1, int cm2)
 {
   float d = abs(mV1-mV2) / (float)abs(cm1-cm2);
-  return ((mV1-mV)/d) + cm1;
+  int dist = 60;
+  if(d > 0){
+    dist = ((mV1-mV)/d) + cm1;
+  }
+  return dist;
 }
 
 void getDistance()
