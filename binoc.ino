@@ -56,7 +56,7 @@ void setup() {
     
   digitalWrite(pinRele1, HIGH); 
   digitalWrite(pinRele2, HIGH);  
-  delay(2500); 
+  delay(5000); 
   digitalWrite(pinRele1, LOW);  
 
   pinMode(pinHeat, OUTPUT); 
@@ -305,16 +305,60 @@ void controlFan()
 }
 
 
+const unsigned long heatMaximumEnableTimeSec = 5; //включаем нагрев максимум на это время
+const unsigned long heatEnablePeriodTimeSec = 60; //не чаще чем один раз в это время
+unsigned long lastHeatEnableTime = 0;
+enum heatState_t {off, on};
+heatState_t heatState = off;
 void controlHeat()
 {
+  unsigned long curTime = millis()/1000;
+  //Serial.print(curTime);
+  //Serial.print(" ");
   if(tempC > -99){
-    if(tempC > 200){
-      digitalWrite(pinHeat, LOW);   
+    if(tempC < 150){
+      Serial.print("less15 ");
+      switch(heatState){
+        case off: 
+         //Serial.print("coff ");
+         //Serial.print((curTime - lastHeatEnableTime));
+         //Serial.print(" ");
+          if((curTime - lastHeatEnableTime) > heatEnablePeriodTimeSec){
+            //Serial.print("gp ");
+            lastHeatEnableTime = curTime;
+            heatState = on;
+            digitalWrite(pinHeat, HIGH);
+          }
+          else{
+            //Serial.print("lp ");
+            digitalWrite(pinHeat, LOW);
+          }
+          break;
+        case on:
+        //Serial.print("con ");        
+          if((curTime - lastHeatEnableTime) > heatMaximumEnableTimeSec){
+            //Serial.print("ge ");
+            digitalWrite(pinHeat, LOW);
+            heatState = off;
+          }    
+          else{
+            //Serial.print("le ");
+            digitalWrite(pinHeat, HIGH);            
+          }
+          break;
+      }
+      //Serial.println(" ");
     }
-    else if(tempC < 150){
-      digitalWrite(pinHeat, HIGH);       
+    else{
+      digitalWrite(pinHeat, LOW);
+      heatState = off;        
     }
   }
+  else{
+      digitalWrite(pinHeat, LOW);
+      heatState = off;            
+  }
+  
 
 }
 
