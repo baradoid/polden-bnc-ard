@@ -15,8 +15,8 @@ int pinData2Mask = 1<<pinData2;
 int pinRele1=9;
 int pinRele2=10;
 
-int pinFan1Int = PB3;
-int pinFan2Ext = PD6;
+int pinFan1Int = 11; //PB3;
+int pinFan2Ext = 12; //PD6;
 
 int pinSharp = A0;
 int pinHeat = A2;
@@ -38,7 +38,7 @@ DeviceAddress tempDeviceAddress; // We'll use this variable to store a found dev
 void setup() {
   // initialize digital pin 13 as an output.
   //pinMode(13, OUTPUT);
-  Serial.begin(230400);
+  Serial.begin(115200);
    
   pinMode(pinClk, OUTPUT);           // set pin to input
   digitalWrite(pinClk, LOW);   
@@ -115,7 +115,7 @@ int xPos1 = 0, xPos2 = 0;
 
 int valArr[13];
 char str[50];
-int andrCpuTemp=0;
+int lastAndrCpuTemp = 0, andrCpuTemp=0;
 // the loop function runs over and over again forever
 unsigned long lastTempContrTime = 0;
 unsigned long lastDistContrTime = 0;
@@ -128,13 +128,15 @@ unsigned long maninCntr = 0;
 void loop() 
 {
   maninCntr++;
+  readSerial();
   unsigned long curTime = millis();
   if((curTime - lastTempContrTime) > 1000){    
     lastTempContrTime = curTime;
     getTemp();
-    controlHeat();
+    controlHeat();    
     controlFan();
   }
+  
 
   if((curTime - lastDistContrTime) > 100 ){    
     lastDistContrTime = curTime;    
@@ -145,15 +147,16 @@ void loop()
 
   if((curTime - lastSendReportTime) > 10){
     lastSendReportTime = curTime;
-//    if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
-//     (lastTempC != tempC) || (lastSharpVal != sharpVal) ){
-      sprintf(str,"%04X %04X %04d %04d", xPos1, xPos2, tempC, sharpVal);
+    if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
+     (lastTempC != tempC) || (lastSharpVal != sharpVal) || (lastAndrCpuTemp != andrCpuTemp) ){
+      sprintf(str,"%04X %04X %04d %04d %04d", xPos1, xPos2, tempC, sharpVal, andrCpuTemp);
       Serial.println(str);  
       lastXpos1 = xPos1;
       lastXpos2 = xPos2;
       lastTempC = tempC;
       lastSharpVal = sharpVal;    
-//    } 
+      lastAndrCpuTemp = andrCpuTemp;
+    } 
   }
 }
 
@@ -287,20 +290,35 @@ void getPos()
   } 
 }
 
-void controlFan()
+String inString = "";  
+void readSerial()
 {
-  String inStr = Serial.readString();
-  if(inStr.length() > 0){
-    andrCpuTemp = inStr.toInt();
-    if(andrCpuTemp > 30){
-      digitalWrite(pinFan1Int, HIGH); 
-      digitalWrite(pinFan2Ext, HIGH); 
+    while (Serial.available() > 0) {
+    int inChar = Serial.read();
+    if (isDigit(inChar)) {
+      // convert the incoming byte to a char
+      // and add it to the string:
+      inString += (char)inChar;
     }
-    else{
-      digitalWrite(pinFan1Int, LOW); 
-      digitalWrite(pinFan2Ext, LOW); 
+
+    if (inChar == '\n') {
+      andrCpuTemp = inString.toInt();
+      inString = "";
+               
     }
   }
+}
+
+void controlFan()
+{    
+  if(andrCpuTemp > 30){
+    digitalWrite(pinFan1Int, LOW); 
+    digitalWrite(pinFan2Ext, LOW); 
+  }
+  else{
+    digitalWrite(pinFan1Int, HIGH); 
+    digitalWrite(pinFan2Ext, HIGH); 
+  }      
 }
 
 
