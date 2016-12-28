@@ -145,16 +145,15 @@ void loop()
 
   if((curTime - lastSendReportTime) > 10){
     lastSendReportTime = curTime;
-//  if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
-//     (lastTempC != tempC) || (lastSharpVal != sharpVal) 
-//  ){
-    sprintf(str,"%04X %04X %04d %04d", xPos1, xPos2, tempC, sharpVal);
-    Serial.println(str);  
-//    lastXpos1 = xPos1;
-//    lastXpos2 = xPos2;
-//    lastTempC = tempC;
-//    lastSharpVal = sharpVal;    
-//  } 
+//    if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
+//     (lastTempC != tempC) || (lastSharpVal != sharpVal) ){
+      sprintf(str,"%04X %04X %04d %04d", xPos1, xPos2, tempC, sharpVal);
+      Serial.println(str);  
+      lastXpos1 = xPos1;
+      lastXpos2 = xPos2;
+      lastTempC = tempC;
+      lastSharpVal = sharpVal;    
+//    } 
   }
 }
 
@@ -293,7 +292,7 @@ void controlFan()
   String inStr = Serial.readString();
   if(inStr.length() > 0){
     andrCpuTemp = inStr.toInt();
-    if(andrCpuTemp > 55){
+    if(andrCpuTemp > 30){
       digitalWrite(pinFan1Int, HIGH); 
       digitalWrite(pinFan2Ext, HIGH); 
     }
@@ -317,7 +316,7 @@ void controlHeat()
   //Serial.print(" ");
   if(tempC > -99){
     if(tempC < 150){
-      Serial.print("less15 ");
+      //Serial.print("less15 ");
       switch(heatState){
         case off: 
          //Serial.print("coff ");
