@@ -24,6 +24,11 @@ int pinHeat = A2;
 int sharpVal = 0;
 int lastSharpVal = 0;
 
+boolean bFan1On = false, bFan1OnLast = false;
+boolean bFan2On = false, bFan2OnLast = false;
+boolean bHeatOn = false, bHeatOnLast = false;
+char  fanHeatStateString[10] = "DDD";
+
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS PD7
 #define TEMPERATURE_PRECISION 9 // Lower resolution
@@ -135,6 +140,10 @@ void loop()
     getTemp();
     controlHeat();    
     controlFan();
+
+    sprintf(fanHeatStateString,"%c%c%c", bFan1On? 'E':'D', 
+                                         bFan2On? 'E':'D', 
+                                         bHeatOn? 'E':'D');
   }
   
 
@@ -148,14 +157,22 @@ void loop()
   if((curTime - lastSendReportTime) > 10){
     lastSendReportTime = curTime;
     if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
-     (lastTempC != tempC) || (lastSharpVal != sharpVal) || (lastAndrCpuTemp != andrCpuTemp) ){
-      sprintf(str,"%04X %04X %04d %04d %04d", xPos1, xPos2, tempC, sharpVal, andrCpuTemp);
+     (lastTempC != tempC) || (lastSharpVal != sharpVal) || (lastAndrCpuTemp != andrCpuTemp) ||
+     (bFan1On != bFan1OnLast) || (bFan2On != bFan2OnLast) ||(bHeatOn != bHeatOnLast)){
+      
+      sprintf(str,"%04X %04X %04d %04d %04d %s", xPos1, xPos2,
+                                              tempC, sharpVal, 
+                                              andrCpuTemp, fanHeatStateString);
       Serial.println(str);  
       lastXpos1 = xPos1;
       lastXpos2 = xPos2;
       lastTempC = tempC;
       lastSharpVal = sharpVal;    
       lastAndrCpuTemp = andrCpuTemp;
+
+      bFan1OnLast = bFan1On;
+      bFan2OnLast = bFan2On;
+      bHeatOnLast = bHeatOn;
     } 
   }
 }
@@ -312,17 +329,22 @@ void readSerial()
 void controlFan()
 {    
   if(andrCpuTemp > 30){
+    bFan1On = true;
+    bFan2On = true;
     digitalWrite(pinFan1Int, LOW); 
     digitalWrite(pinFan2Ext, LOW); 
   }
   else{
+    bFan1On = false;
+    bFan2On = false;
+
     digitalWrite(pinFan1Int, HIGH); 
     digitalWrite(pinFan2Ext, HIGH); 
   }      
 }
 
 
-const unsigned long heatMaximumEnableTimeSec = 5; //включаем нагрев максимум на это время
+const unsigned long heatMaximumEnableTimeSec = 7; //включаем нагрев максимум на это время
 const unsigned long heatEnablePeriodTimeSec = 60; //не чаще чем один раз в это время
 unsigned long lastHeatEnableTime = 0;
 enum heatState_t {off, on};
@@ -333,7 +355,7 @@ void controlHeat()
   //Serial.print(curTime);
   //Serial.print(" ");
   if(tempC > -99){
-    if(tempC < 150){
+    if(tempC < 50){
       //Serial.print("less15 ");
       switch(heatState){
         case off: 
@@ -345,10 +367,12 @@ void controlHeat()
             lastHeatEnableTime = curTime;
             heatState = on;
             digitalWrite(pinHeat, HIGH);
+            bHeatOn = true;
           }
           else{
             //Serial.print("lp ");
             digitalWrite(pinHeat, LOW);
+            bHeatOn = false;
           }
           break;
         case on:
@@ -357,10 +381,12 @@ void controlHeat()
             //Serial.print("ge ");
             digitalWrite(pinHeat, LOW);
             heatState = off;
+            bHeatOn = false;
           }    
           else{
             //Serial.print("le ");
-            digitalWrite(pinHeat, HIGH);            
+            digitalWrite(pinHeat, HIGH);
+            bHeatOn = true;            
           }
           break;
       }
