@@ -132,42 +132,56 @@ unsigned long lastSendReportTime = 0;
 unsigned long maninCntr = 0;
 void loop() 
 {
+  bool isPosChanged = false;
+  bool isDistanceChanged = false;
+  
   maninCntr++;
   readSerial();
   unsigned long curTime = millis();
-  if((curTime - lastTempContrTime) > 1000){    
-    lastTempContrTime = curTime;
-    getTemp();
-    controlHeat();    
-    controlFan();
 
-    sprintf(fanHeatStateString,"%c%c%c", bFan1On? 'E':'D', 
-                                         bFan2On? 'E':'D', 
-                                         bHeatOn? 'E':'D');
-  }
-  
-
-  if((curTime - lastDistContrTime) > 100 ){    
+  if((curTime - lastDistContrTime) > 200 ){    
     lastDistContrTime = curTime;    
     getDistance();
+    if(lastSharpVal != sharpVal){
+      lastSharpVal = sharpVal;
+      isDistanceChanged = true;
+    }
   }
 
   getPos();
 
+  if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) ){
+      lastXpos1 = xPos1;
+      lastXpos2 = xPos2;
+      isPosChanged = true;
+  }
+
+  if(sharpVal > 30){
+    if((curTime - lastTempContrTime) > 1000){    
+      lastTempContrTime = curTime;
+      getTemp();
+      controlHeat();    
+      controlFan();
+  
+      sprintf(fanHeatStateString,"%c%c%c", bFan1On? 'E':'D', 
+                                           bFan2On? 'E':'D', 
+                                           bHeatOn? 'E':'D');
+    }
+  }
+    
+
   if((curTime - lastSendReportTime) > 10){
     lastSendReportTime = curTime;
-    if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || 
-     (lastTempC != tempC) || (lastSharpVal != sharpVal) || (lastAndrCpuTemp != andrCpuTemp) ||
+    if( (isPosChanged == true) || (isDistanceChanged == true) || 
+     (lastTempC != tempC) || (lastAndrCpuTemp != andrCpuTemp) ||
      (bFan1On != bFan1OnLast) || (bFan2On != bFan2OnLast) ||(bHeatOn != bHeatOnLast)){
       
       sprintf(str,"%04X %04X %04d %04d %04d %s", xPos1, xPos2,
                                               tempC, sharpVal, 
                                               andrCpuTemp, fanHeatStateString);
       Serial.println(str);  
-      lastXpos1 = xPos1;
-      lastXpos2 = xPos2;
-      lastTempC = tempC;
-      lastSharpVal = sharpVal;    
+
+      lastTempC = tempC;   
       lastAndrCpuTemp = andrCpuTemp;
 
       bFan1OnLast = bFan1On;
