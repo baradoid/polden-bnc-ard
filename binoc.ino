@@ -130,32 +130,22 @@ int tempC = -990;
 
 unsigned long lastSendReportTime = 0;
 unsigned long maninCntr = 0;
+
 void loop() 
 {
-  bool isPosChanged = false;
-  bool isDistanceChanged = false;
-  
+
   maninCntr++;
   readSerial();
+
+  getPos();
+  
   unsigned long curTime = millis();
 
   if((curTime - lastDistContrTime) > 200 ){    
     lastDistContrTime = curTime;    
     getDistance();
-    if(lastSharpVal != sharpVal){
-      lastSharpVal = sharpVal;
-      isDistanceChanged = true;
-    }
   }
-
-  getPos();
-
-  if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) ){
-      lastXpos1 = xPos1;
-      lastXpos2 = xPos2;
-      isPosChanged = true;
-  }
-
+  
   if(sharpVal > 30){
     if((curTime - lastTempContrTime) > 1000){    
       lastTempContrTime = curTime;
@@ -172,7 +162,7 @@ void loop()
 
   if((curTime - lastSendReportTime) > 10){
     lastSendReportTime = curTime;
-    if( (isPosChanged == true) || (isDistanceChanged == true) || 
+    if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || (lastSharpVal != sharpVal) || 
      (lastTempC != tempC) || (lastAndrCpuTemp != andrCpuTemp) ||
      (bFan1On != bFan1OnLast) || (bFan2On != bFan2OnLast) ||(bHeatOn != bHeatOnLast)){
       
@@ -180,13 +170,18 @@ void loop()
                                               tempC, sharpVal, 
                                               andrCpuTemp, fanHeatStateString);
       Serial.println(str);  
-
+      
+      lastXpos1 = xPos1;
+      lastXpos2 = xPos2;
+      lastSharpVal = sharpVal;
+      
       lastTempC = tempC;   
       lastAndrCpuTemp = andrCpuTemp;
 
       bFan1OnLast = bFan1On;
       bFan2OnLast = bFan2On;
       bHeatOnLast = bHeatOn;
+            
     } 
   }
 }
