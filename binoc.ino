@@ -21,6 +21,8 @@ int pinFan2Ext = 12; //PD6;
 int pinSharp = A0;
 int pinHeat = A2;
 
+int pinMute = 2;
+
 int sharpVal = 0;
 int lastSharpVal = 0;
 
@@ -54,8 +56,12 @@ void setup() {
   pinMode(pinRele1, OUTPUT); 
   pinMode(pinRele2, OUTPUT); 
     
-  pinMode(pinFan1Int, OUTPUT);     
-  pinMode(pinFan2Ext, OUTPUT);     
+  pinMode(pinFan1Int, OUTPUT);    
+  pinMode(pinFan2Ext, OUTPUT);    
+    
+  pinMode(pinMute, OUTPUT);  
+  digitalWrite(pinMute, HIGH);   
+     
   digitalWrite(pinFan1Int, LOW);    
   digitalWrite(pinFan2Ext, LOW);  
     
@@ -123,6 +129,7 @@ char str[50];
 int lastAndrCpuTemp = 0, andrCpuTemp=0;
 // the loop function runs over and over again forever
 unsigned long lastTempContrTime = 0;
+unsigned long lastFanContrTime = 0;
 unsigned long lastDistContrTime = 0;
 
 int lastTempC = 0;
@@ -136,7 +143,6 @@ void loop()
 
   maninCntr++;
   readSerial();
-
   getPos();
   
   unsigned long curTime = millis();
@@ -149,16 +155,22 @@ void loop()
   if(sharpVal > 30){
     if((curTime - lastTempContrTime) > 1000){    
       lastTempContrTime = curTime;
-      getTemp();
-      controlHeat();    
-      controlFan();
+      getTemp();  
+      controlHeat();
+    }
+    digitalWrite(pinMute, HIGH);  
+  }
+  else{
+    digitalWrite(pinMute, LOW);      
+  }
   
+  if((curTime - lastFanContrTime) > 1000){
+      lastFanContrTime = curTime;
+      controlFan();   
       sprintf(fanHeatStateString,"%c%c%c", bFan1On? 'E':'D', 
                                            bFan2On? 'E':'D', 
                                            bHeatOn? 'E':'D');
-    }
   }
-    
 
   if((curTime - lastSendReportTime) > 10){
     lastSendReportTime = curTime;
