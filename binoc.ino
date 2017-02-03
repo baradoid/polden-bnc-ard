@@ -25,11 +25,13 @@ int pinMute = 2;
 
 int sharpVal = 0;
 int lastSharpVal = 0;
+//int filteredDist =0;
 
 boolean bFan1On = false, bFan1OnLast = false;
 boolean bFan2On = false, bFan2OnLast = false;
 boolean bHeatOn = false, bHeatOnLast = false;
 char  fanHeatStateString[10] = "DDD";
+
 
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS PD7
@@ -147,7 +149,7 @@ void loop()
   
   unsigned long curTime = millis();
 
-  if((curTime - lastDistContrTime) > 200 ){    
+  if((curTime - lastDistContrTime) > 50 ){    
     lastDistContrTime = curTime;    
     getDistance();
   }
@@ -273,20 +275,29 @@ int calcPoly(int mV, int mV1, int mV2, int cm1, int cm2)
   return dist;
 }
 
+int recalcMvToCm(int mV)
+{
+  int dist = 0;
+  if(mV < 500){              
+    dist = calcPoly(mV, 500, 250, 25, 40); //500to250 mv = 25to40; 
+  }
+  else if(mV < 1000){              
+    dist = calcPoly(mV, 1000, 500, 12, 25); //1000to500 mv = 12to25;
+  }
+  else{          
+    dist = calcPoly(mV, 3000, 1000, 3,12);   //3000to1000 mv = 3to12
+  }
+  return dist;
+  
+}
 void getDistance()
 {
   int mV = analogRead(pinSharp)*4.9; //in mV  
-  if(mV < 500){              
-    sharpVal = calcPoly(mV, 500, 250, 25, 40); //500to250 mv = 25to40;    
-  }
-  else if(mV < 1000){              
-    sharpVal = calcPoly(mV, 1000, 500, 12, 25); //1000to500 mv = 12to25;    
-  }
-  else{          
-    sharpVal = calcPoly(mV, 3000, 1000, 3,12);   //3000to1000 mv = 3to12     
-  }
-  //sharpVal = mV;
-  
+
+  //sharpVal = recalcMvToCm(mV);
+  sharpVal = recalcMvToCm((int)filter(mV));
+
+  //filteredDist = recalcMvToCm((int)filter(mV));  
 }
 
 void getPos()
@@ -424,5 +435,12 @@ void controlHeat()
   }
   
 
+}
+
+double filter(int d)
+{
+  static double acc = 0;
+  acc = 0.2*(double)d + 0.8 *acc;
+  return acc;
 }
 
