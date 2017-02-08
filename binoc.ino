@@ -292,10 +292,10 @@ int recalcMvToCm(int mV)
 }
 void getDistance()
 {
-  int mV = analogRead(pinSharp)*4.9; //in mV  
+  int mV = fir(analogRead(pinSharp))*4.9; //in mV  
 
   //sharpVal = recalcMvToCm(mV);
-  sharpVal = recalcMvToCm((int)filter(mV));
+  sharpVal = recalcMvToCm(mV);
 
   //filteredDist = recalcMvToCm((int)filter(mV));  
 }
@@ -443,4 +443,34 @@ double filter(int d)
   acc = 0.2*(double)d + 0.8 *acc;
   return acc;
 }
+
+#define Ntap 8
+
+    float FIRCoef[Ntap] = { 
+        0.08997650465060308400,
+        0.13443834128434992000,
+        0.16588587705222707000,
+        0.17723405264792491000,
+        0.16588587705222707000,
+        0.13443834128434992000,
+        0.08997650465060308400,
+        0.04216450137771470000
+    };
+float  x[Ntap]; //input samples
+float  fir(float  NewSample) {
+    float y=0;            //output sample
+    int n;
+
+    //shift the old samples
+    for(n=Ntap-1; n>0; n--)
+       x[n] = x[n-1];
+
+    //Calculate the new output
+    x[0] = NewSample;
+    for(n=0; n<Ntap; n++)
+        y += FIRCoef[n] * x[n];
+    
+    return y;
+}
+
 
