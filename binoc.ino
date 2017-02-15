@@ -23,15 +23,6 @@ int pinHeat = A2;
 
 int pinMute = 2;
 
-int sharpVal = 0;
-int lastSharpVal = 0;
-//int filteredDist =0;
-
-boolean bFan1On = false, bFan1OnLast = false;
-boolean bFan2On = false, bFan2OnLast = false;
-boolean bHeatOn = false, bHeatOnLast = false;
-char  fanHeatStateString[10] = "DDD";
-
 
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS PD7
@@ -42,6 +33,33 @@ OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 int numberOfDevices = 0; // Number of temperature devices found
 DeviceAddress tempDeviceAddress; // We'll use this variable to store a found device address
+
+
+uint16_t fanRpm[3] = {0, 0, 0};
+int lastXpos1=0, lastXpos2=0;
+int xPos1 = 0, xPos2 = 0;
+
+int valArr[13];
+char str[50], lastStr[50];
+int lastAndrCpuTemp = 0, andrCpuTemp=0;
+
+unsigned long lastTempContrTime = 0;
+unsigned long lastFanContrTime = 0;
+unsigned long lastDistContrTime = 0;
+
+unsigned long lastSendReportTime = 0;
+
+uint64_t lastPhoneMsgRecvTime = 0;
+unsigned long maninCntr = 0;
+
+String inString = "";  
+
+int sharpVal = 0;
+int dallasTemp = -99;
+//int filteredDist =0;
+
+boolean bFanOn = false;
+boolean bHeatOn = false;
 
 
 void setup() {
@@ -65,15 +83,12 @@ void setup() {
   digitalWrite(pinMute, HIGH);   
      
   digitalWrite(pinFan1Int, LOW);    
-  digitalWrite(pinFan2Ext, LOW);  
-    
-  digitalWrite(pinRele1, HIGH); 
-  digitalWrite(pinRele2, HIGH);  
-  delay(5000); 
-  digitalWrite(pinRele1, LOW);  
+  digitalWrite(pinFan2Ext, LOW);     
 
   pinMode(pinHeat, OUTPUT); 
   digitalWrite(pinHeat, LOW);  
+
+  pinMode(pinSharp, INPUT); 
     
   Serial.setTimeout(5);
 
@@ -121,82 +136,82 @@ void setup() {
       Serial.print(" but could not detect address. Check power and cabling");
     }
   }
+  
+  formatData();   
+  
+  resetPhone();
 }
 
-int lastXpos1=0, lastXpos2=0;
-int xPos1 = 0, xPos2 = 0;
-
-int valArr[13];
-char str[50];
-int lastAndrCpuTemp = 0, andrCpuTemp=0;
-// the loop function runs over and over again forever
-unsigned long lastTempContrTime = 0;
-unsigned long lastFanContrTime = 0;
-unsigned long lastDistContrTime = 0;
-
-int lastTempC = 0;
-int tempC = -990;
-
-unsigned long lastSendReportTime = 0;
-unsigned long maninCntr = 0;
 
 void loop() 
 {
-
   maninCntr++;
-  readSerial();
-  getPos();
+  if(readSerial() == true){
+    if(inString == "reset\n"){
+      resetPhone();          
+      lastPhoneMsgRecvTime = millis();
+    }
+    else if(inString == "son\n"){
+      soundOn();      
+      lastPhoneMsgRecvTime = millis();
+    }
+    else if(inString == "soff\n"){
+      soundOff();      
+      lastPhoneMsgRecvTime = millis();
+    }
+    else if(inString.startsWith("t=") == true){
+      inString.remove(0, 2);
+
+      andrCpuTemp = inString.toInt();
+      //sprintf(&(str[20]),"%04d", andrCpuTemp);            
+      lastPhoneMsgRecvTime = millis();
+    }
+    
+    inString = "";
+  }
+  
+  getPos();    
   
   unsigned long curTime = millis();
 
   if((curTime - lastDistContrTime) > 50 ){    
     lastDistContrTime = curTime;    
     getDistance();
-  }
-  
-  if(sharpVal > 30){
-    if((curTime - lastTempContrTime) > 1000){    
-      lastTempContrTime = curTime;
-      getTemp();  
-      controlHeat();
-    }
-    digitalWrite(pinMute, HIGH);  
-  }
-  else{
-    digitalWrite(pinMute, LOW);      
+    //sprintf(&(str[15]),"%04d", sharpVal);        
+    //print04d(&(str[15]), sharpVal);
   }
   
   if((curTime - lastFanContrTime) > 1000){
       lastFanContrTime = curTime;
-      controlFan();   
-      sprintf(fanHeatStateString,"%c%c%c", bFan1On? 'E':'D', 
-                                           bFan2On? 'E':'D', 
-                                           bHeatOn? 'E':'D');
+
+    if(isSoundEnabled() == false){      
+      dallasTemp = getTemp();  
+      controlHeat(dallasTemp);         
+    }
+    controlFan(); 
+
+    if(isSoundEnabled() == false){
+      formatData();      
+    }
+    str[25] = bFanOn? 'E':'D';
+    str[26] = bHeatOn? 'E':'D';
   }
 
-  if((curTime - lastSendReportTime) > 10){
+  sprintf(str, "%04X %04X", xPos1, xPos2);
+  str[4] = str[9] = str[14] = str[19] = str[24] = str[27] = str[31] = str[35] = ' ';      
+  str[39] = 0;
+  
+  if((curTime - lastSendReportTime) > 10){       
     lastSendReportTime = curTime;
-    if( (xPos1 != lastXpos1) || (xPos2 != lastXpos2) || (lastSharpVal != sharpVal) || 
-     (lastTempC != tempC) || (lastAndrCpuTemp != andrCpuTemp) ||
-     (bFan1On != bFan1OnLast) || (bFan2On != bFan2OnLast) ||(bHeatOn != bHeatOnLast)){
-      
-      sprintf(str,"%04X %04X %04d %04d %04d %s", xPos1, xPos2,
-                                              tempC, sharpVal, 
-                                              andrCpuTemp, fanHeatStateString);
-      Serial.println(str);  
-      
-      lastXpos1 = xPos1;
-      lastXpos2 = xPos2;
-      lastSharpVal = sharpVal;
-      
-      lastTempC = tempC;   
-      lastAndrCpuTemp = andrCpuTemp;
-
-      bFan1OnLast = bFan1On;
-      bFan2OnLast = bFan2On;
-      bHeatOnLast = bHeatOn;
-            
-    } 
+    if(strcmp(str, lastStr) != 0){
+      strcpy(lastStr, str);
+      Serial.println(str);        
+    }
+  }
+  
+  if( ((millis() - lastPhoneMsgRecvTime)/1000) > 180){
+    resetPhone();
+    lastPhoneMsgRecvTime = millis();
   }
 }
 
@@ -227,11 +242,12 @@ void printAddress(DeviceAddress deviceAddress)
     Serial.print(deviceAddress[i], HEX);
   }
 }
-void getTemp()
-{    
+int getTemp()
+{   
+  int t = -990; 
   if(numberOfDevices > 0){
     if(sensors.requestTemperaturesByIndex(0) == true){
-      tempC = (int)(sensors.getTempC(tempDeviceAddress)*10);
+      t = (int)(sensors.getTempC(tempDeviceAddress)*10);
     }
     else{
       numberOfDevices--;      
@@ -252,17 +268,15 @@ void getTemp()
 //    }
   }
   else{
-    tempC = -990;
-      numberOfDevices = sensors.getDeviceCount();    
-      for(int i=0;i<numberOfDevices; i++)
-      {
-        if(sensors.getAddress(tempDeviceAddress, i))
-        {
-          sensors.setResolution(tempDeviceAddress, TEMPERATURE_PRECISION);
-        }
+    t = -990;
+    numberOfDevices = sensors.getDeviceCount();    
+    for(int i=0;i<numberOfDevices; i++){
+      if(sensors.getAddress(tempDeviceAddress, i)){
+        sensors.setResolution(tempDeviceAddress, TEMPERATURE_PRECISION);
       }
+    }
   }
-  
+  return t;
 }
 
 int calcPoly(int mV, int mV1, int mV2, int cm1, int cm2)
@@ -308,6 +322,7 @@ void getPos()
 //  noInterrupts();
 //  PORTD = pinClkClr;
 //  PORTD = pinClkClr;
+//delayMicroseconds(50);     //!!!
 //  PORTD = pinClkClr;
 //  for(int i=0; i<13; i++){         
 //    PORTD = pinClkSet; 
@@ -339,37 +354,37 @@ void getPos()
   } 
 }
 
-String inString = "";  
-void readSerial()
-{
-    while (Serial.available() > 0) {
+
+bool readSerial()
+{  
+  bool ret = false;
+  while (Serial.available() > 0) {
     int inChar = Serial.read();
-    if (isDigit(inChar)) {
+    //if (isDigit(inChar)) {
       // convert the incoming byte to a char
       // and add it to the string:
       inString += (char)inChar;
-    }
+    //}
 
     if (inChar == '\n') {
-      andrCpuTemp = inString.toInt();
-      inString = "";
-               
+      //andrCpuTemp = inString.toInt();
+      //inString = "";
+      ret = true;
+      break;              
     }
   }
+  return ret;
 }
 
 void controlFan()
 {    
   if(andrCpuTemp > 30){
-    bFan1On = true;
-    bFan2On = true;
+    bFanOn = true;
     digitalWrite(pinFan1Int, LOW); 
     digitalWrite(pinFan2Ext, LOW); 
   }
   else{
-    bFan1On = false;
-    bFan2On = false;
-
+    bFanOn = false;
     digitalWrite(pinFan1Int, HIGH); 
     digitalWrite(pinFan2Ext, HIGH); 
   }      
@@ -381,13 +396,13 @@ const unsigned long heatEnablePeriodTimeSec = 60; //не чаще чем оди�
 unsigned long lastHeatEnableTime = 0;
 enum heatState_t {off, on};
 heatState_t heatState = off;
-void controlHeat()
+void controlHeat(int t)
 {
   unsigned long curTime = millis()/1000;
   //Serial.print(curTime);
   //Serial.print(" ");
-  if(tempC > -99){
-    if(tempC < 50){
+  if(t > -99){
+    if(t < 50){
       //Serial.print("less15 ");
       switch(heatState){
         case off: 
@@ -433,8 +448,6 @@ void controlHeat()
       digitalWrite(pinHeat, LOW);
       heatState = off;            
   }
-  
-
 }
 
 double filter(int d)
@@ -473,4 +486,38 @@ float  fir(float  NewSample) {
     return y;
 }
 
+void resetPhone()
+{
+  digitalWrite(pinRele2, LOW); 
+  delay(2000); 
+  digitalWrite(pinRele1, HIGH); 
+  digitalWrite(pinRele2, HIGH);  
+  delay(5000); 
+  digitalWrite(pinRele1, LOW); 
+}
+
+bool bSoundEnable = false;
+bool isSoundEnabled()
+{
+  return bSoundEnable;  
+}
+
+void soundOn()
+{
+  digitalWrite(pinMute, LOW);              
+  bSoundEnable = true;
+}
+
+void soundOff()
+{
+  digitalWrite(pinMute, HIGH);  
+  bSoundEnable = false;
+}
+
+void formatData()
+{
+  sprintf(&(str[10]), "%04d %04d %04d    %03x %03x %03x", 
+                      dallasTemp, sharpVal, andrCpuTemp, 
+                      fanRpm[0], fanRpm[1], fanRpm[2]);
+}
 
