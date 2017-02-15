@@ -180,24 +180,28 @@ void loop()
     //sprintf(&(str[15]),"%04d", sharpVal);        
     //print04d(&(str[15]), sharpVal);
   }
+
+  //formatData(); 
   
   if((curTime - lastFanContrTime) > 1000){
       lastFanContrTime = curTime;
 
     if(isSoundEnabled() == false){      
       dallasTemp = getTemp();  
-      controlHeat(dallasTemp);         
+      controlHeat(dallasTemp); 
+      //sprintf(str, "%04X %04X %04d %04d %04d    000 000 000", xPos1, xPos2, dallasTemp, sharpVal, andrCpuTemp);        
     }
     controlFan(); 
 
     if(isSoundEnabled() == false){
-      formatData();      
+      //formatData();      
     }
-    str[25] = bFanOn? 'E':'D';
-    str[26] = bHeatOn? 'E':'D';
-  }
 
-  sprintf(str, "%04X %04X", xPos1, xPos2);
+  }
+  
+  sprintf(str, "%04X %04X %04d %04d %04d    000 000 000", xPos1, xPos2, dallasTemp, sharpVal, andrCpuTemp);
+  str[25] = bFanOn? 'E':'D';
+  str[26] = bHeatOn? 'E':'D';
   str[4] = str[9] = str[14] = str[19] = str[24] = str[27] = str[31] = str[35] = ' ';      
   str[39] = 0;
   
@@ -209,7 +213,7 @@ void loop()
     }
   }
   
-  if( ((millis() - lastPhoneMsgRecvTime)/1000) > 180){
+  if( ((millis() - lastPhoneMsgRecvTime)/1000) > 300){
     resetPhone();
     lastPhoneMsgRecvTime = millis();
   }
@@ -519,5 +523,8 @@ void formatData()
   sprintf(&(str[10]), "%04d %04d %04d    %03x %03x %03x", 
                       dallasTemp, sharpVal, andrCpuTemp, 
                       fanRpm[0], fanRpm[1], fanRpm[2]);
+                          
+  str[25] = bFanOn? 'E':'D';
+  str[26] = bHeatOn? 'E':'D';
 }
 
