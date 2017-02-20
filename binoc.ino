@@ -18,14 +18,14 @@ int pinRele2=10;
 int pinFan1Int = 11; //PB3;
 int pinFan2Ext = 12; //PD6;
 
-int pinSharp = A0;
-int pinHeat = A2;
+int pinSharp = A2;
+int pinHeat = A0;
 
 int pinMute = 2;
 
 
 // Data wire is plugged into port 2 on the Arduino
-#define ONE_WIRE_BUS PD7
+#define ONE_WIRE_BUS A4
 #define TEMPERATURE_PRECISION 9 // Lower resolution
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
