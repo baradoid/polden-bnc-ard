@@ -15,8 +15,8 @@ int pinData2Mask = 1<<pinData2;
 int pinRele1=9;
 int pinRele2=10;
 
-int pinFan1Int = 11; //PB3;
-int pinFan2Ext = 12; //PD6;
+int pinFan = A3; //PB3;
+//int pinFan2Ext = 12; //PD6;
 
 int pinSharp = A2;
 int pinHeat = A0;
@@ -76,14 +76,14 @@ void setup() {
   pinMode(pinRele1, OUTPUT); 
   pinMode(pinRele2, OUTPUT); 
     
-  pinMode(pinFan1Int, OUTPUT);    
-  pinMode(pinFan2Ext, OUTPUT);    
+  pinMode(pinFan, OUTPUT);    
+  //pinMode(pinFan2Ext, OUTPUT);    
     
   pinMode(pinMute, OUTPUT);  
   digitalWrite(pinMute, HIGH);   
      
-  digitalWrite(pinFan1Int, LOW);    
-  digitalWrite(pinFan2Ext, LOW);     
+  digitalWrite(pinFan, LOW);    
+  //digitalWrite(pinFan2Ext, LOW);     
 
   pinMode(pinHeat, OUTPUT); 
   digitalWrite(pinHeat, LOW);  
@@ -166,6 +166,15 @@ void loop()
       //sprintf(&(str[20]),"%04d", andrCpuTemp);            
       lastPhoneMsgRecvTime = millis();
     }
+
+    else if(inString.startsWith("d=") == true){
+      inString.remove(0, 2);
+
+      dallasTemp = inString.toInt();
+      //sprintf(&(str[20]),"%04d", andrCpuTemp);            
+      lastPhoneMsgRecvTime = millis();
+    }
+    
     
     inString = "";
   }
@@ -187,10 +196,10 @@ void loop()
       lastFanContrTime = curTime;
 
     if(isSoundEnabled() == false){      
-      dallasTemp = getTemp();  
-      controlHeat(dallasTemp); 
+      dallasTemp = getTemp();        
       //sprintf(str, "%04X %04X %04d %04d %04d    000 000 000", xPos1, xPos2, dallasTemp, sharpVal, andrCpuTemp);        
     }
+    controlHeat(dallasTemp); 
     controlFan(); 
 
     if(isSoundEnabled() == false){
@@ -384,13 +393,13 @@ void controlFan()
 {    
   if(andrCpuTemp > 30){
     bFanOn = true;
-    digitalWrite(pinFan1Int, LOW); 
-    digitalWrite(pinFan2Ext, LOW); 
+    digitalWrite(pinFan, LOW); 
+    //digitalWrite(pinFan2Ext, LOW); 
   }
   else{
     bFanOn = false;
-    digitalWrite(pinFan1Int, HIGH); 
-    digitalWrite(pinFan2Ext, HIGH); 
+    digitalWrite(pinFan, HIGH); 
+    //digitalWrite(pinFan2Ext, HIGH); 
   }      
 }
 
