@@ -214,12 +214,12 @@ void loop()
   str[4] = str[9] = str[14] = str[19] = str[24] = str[27] = str[31] = str[35] = ' ';      
   str[39] = 0;
   
-  if((curTime - lastSendReportTime) > 10){       
+  if((curTime - lastSendReportTime) > 20){       
     lastSendReportTime = curTime;
-    if(strcmp(str, lastStr) != 0){
+    //if(strcmp(str, lastStr) != 0){
       strcpy(lastStr, str);
       Serial.println(str);        
-    }
+    //}
   }
   
   if( ((millis() - lastPhoneMsgRecvTime)/1000) > 300){
