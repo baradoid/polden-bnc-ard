@@ -505,7 +505,7 @@ void resetPhone()
   delay(2000); 
   digitalWrite(pinRele1, HIGH); 
   digitalWrite(pinRele2, HIGH);  
-  delay(5000); 
+  delay(15000); 
   digitalWrite(pinRele1, LOW); 
 }
 
