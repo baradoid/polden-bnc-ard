@@ -40,7 +40,7 @@ int lastXpos1=0, lastXpos2=0;
 int xPos1 = 0, xPos2 = 0;
 
 int valArr[13];
-char str[50], lastStr[50];
+char str[50];//, lastStr[50];
 int lastAndrCpuTemp = 0, andrCpuTemp=0;
 
 unsigned long lastTempContrTime = 0;
@@ -54,8 +54,8 @@ unsigned long maninCntr = 0;
 
 String inString = "";  
 
-int sharpVal = 0;
-int dallasTemp = -99;
+int sharpVal = 0, lastSharpVal=0;
+int dallasTemp = -99, lastDallasTemp = 0;
 //int filteredDist =0;
 
 boolean bFanOn = false;
@@ -140,9 +140,12 @@ void setup() {
   formatData();   
   
   resetPhone();
+  sprintf(str, "%04X %04X %04d %04d %04d    000 000 000", xPos1, xPos2, dallasTemp, sharpVal, andrCpuTemp);
+  str[4] = str[9] = str[14] = str[19] = str[24] = str[27] = str[31] = str[35] = ' ';      
+  str[39] = 0;
 }
 
-
+bool bDataUpdated = false;
 void loop() 
 {
   maninCntr++;
@@ -186,6 +189,12 @@ void loop()
   if((curTime - lastDistContrTime) > 50 ){    
     lastDistContrTime = curTime;    
     getDistance();
+    if(sharpVal != lastSharpVal){
+      lastSharpVal = sharpVal;
+      bDataUpdated = true;     
+      //sprintf(&(str[15]), "%04d", sharpVal);
+      //str[19] = ' ';   
+    }
     //sprintf(&(str[15]),"%04d", sharpVal);        
     //print04d(&(str[15]), sharpVal);
   }
@@ -197,27 +206,57 @@ void loop()
 
     if(isSoundEnabled() == false){      
       dallasTemp = getTemp();        
-      //sprintf(str, "%04X %04X %04d %04d %04d    000 000 000", xPos1, xPos2, dallasTemp, sharpVal, andrCpuTemp);        
+      //sprintf(str, "%04X %04X %04d %04d %04d    000 000 000", xPos1, xPos2, dallasTemp, sharpVal, andrCpuTemp);
+      if(dallasTemp != lastDallasTemp){
+        lastDallasTemp = dallasTemp;
+        bDataUpdated = true;
+        sprintf(&(str[10]), "%04d", dallasTemp);
+        str[14] = ' ';   
+      }
+              
     }
     controlHeat(dallasTemp); 
     controlFan(); 
-
+    
+    str[25] = bFanOn? 'E':'D';
+    str[26] = bHeatOn? 'E':'D';
+    
     if(isSoundEnabled() == false){
       //formatData();      
     }
 
   }
+
+
+ 
+      
+  if(xPos1 != lastXpos1){
+    lastXpos1 = xPos1;
+    bDataUpdated = true;
+    sprintf(&(str[0]), "%04X", xPos1);
+    str[4] = ' ';
+  }
+
+  if(xPos2 != lastXpos2){
+    lastXpos2 = xPos2;
+    bDataUpdated = true;
+    sprintf(&(str[5]), "%04X", xPos2);
+    str[9] = ' ';
+  }
   
-  sprintf(str, "%04X %04X %04d %04d %04d    000 000 000", xPos1, xPos2, dallasTemp, sharpVal, andrCpuTemp);
-  str[25] = bFanOn? 'E':'D';
-  str[26] = bHeatOn? 'E':'D';
-  str[4] = str[9] = str[14] = str[19] = str[24] = str[27] = str[31] = str[35] = ' ';      
-  str[39] = 0;
+  if(((curTime - lastSendReportTime) > 10) && bDataUpdated){     
+    sprintf(&(str[15]), "%04d", sharpVal); 
+    str[19] = ' '; 
+    sprintf(&(str[20]), "%04d    000 000 000", andrCpuTemp);
+
+    str[24] = str[27] = str[31] = str[35] = ' ';      
+    str[39] = 0;
+
   
-  if((curTime - lastSendReportTime) > 20){       
     lastSendReportTime = curTime;
+    bDataUpdated = false;
     //if(strcmp(str, lastStr) != 0){
-      strcpy(lastStr, str);
+      //strcpy(lastStr, str);
       Serial.println(str);        
     //}
   }
