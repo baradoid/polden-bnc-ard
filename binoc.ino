@@ -541,11 +541,27 @@ float  fir(float  NewSample) {
 void resetPhone()
 {
   digitalWrite(pinRele2, LOW); 
-  delay(2000); 
+  delay(1000); 
   digitalWrite(pinRele1, HIGH); 
-  digitalWrite(pinRele2, HIGH);  
   delay(15000); 
+////  digitalWrite(pinRele1, HIGH); 
+  digitalWrite(pinRele2, HIGH);  
+  delay(5000); 
   digitalWrite(pinRele1, LOW); 
+
+
+
+//  digitalWrite(pinRele2, LOW); 
+//  digitalWrite(pinRele1, LOW); 
+//  delay(1000); 
+//
+//   digitalWrite(pinRele2, HIGH);  
+//     delay(2000); 
+//   digitalWrite(pinRele1, HIGH); 
+//    delay(10000); 
+//   digitalWrite(pinRele1, LOW); 
+
+
 }
 
 bool bSoundEnable = false;
