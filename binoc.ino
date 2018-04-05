@@ -356,14 +356,24 @@ int recalcMvToCm(int mV)
   return dist;
   
 }
+
+int collectedVals=0;
+long  averVal = 0;
 void getDistance()
-{
-  int mV = fir(analogRead(pinSharp))*4.9; //in mV  
-
-  //sharpVal = recalcMvToCm(mV);
-  sharpVal = recalcMvToCm(mV);
-
-  //filteredDist = recalcMvToCm((int)filter(mV));  
+{  
+  for(int i=0; i<101; i++){
+      averVal += analogRead(pinSharp);
+      collectedVals++;
+  }
+  if(collectedVals>=300){
+    averVal /= 300;
+    //int mV = fir(averVal)*4.9; //in mV
+    int mV = averVal*4.9; //in mV    
+    sharpVal = recalcMvToCm(mV);
+    
+    collectedVals = 0;
+    averVal = 0;
+  }
 }
 
 void getPos()
